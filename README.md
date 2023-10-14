@@ -3,7 +3,7 @@
 [![Popularity](https://img.shields.io/endpoint?url=https%3A%2F%2Fapiland.deno.dev%2Fshields%2Foak_sessions%2Fpopularity)](https://deno.land/x/oak_sessions)
 [![Latest Version](https://img.shields.io/endpoint?url=https%3A%2F%2Fapiland.deno.dev%2Fshields%2Foak_sessions%2Fversion)](https://deno.land/x/oak_sessions)
 
-Use cookie-based web sessions with the Oak framework.
+Use cookie-based web sessions with the [Oak](https://github.com/oakserver/oak) framework.
 Supports flash messages - session data that is deleted after it's read.
 
 ## Usage
@@ -256,6 +256,8 @@ To rotate the session key, simply add an Oak context state variable on the appro
     ctx.state.rotate_session_key = true
 }
 ```
+
+> :warning: Session key rotation doesn't work with CookieStore, by nature of how storing all session data in a cookie works, instead of just a session ID. See the [iron-session](https://github.com/vvo/iron-session#what-are-the-drawbacks) FAQ, which explains the reasoning very well.
 
 ## Migrating from 3.x to 4.x
 There are some breaking changes in how you initialize your session, but all of the `ctx.state.session` methods (`get`, `set`, `flash`, `has`) still work as they did before, except `deleteSession` no longer takes any arguments, which may or may not be breaking depending on how it's used in your project.
