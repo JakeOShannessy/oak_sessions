@@ -10,21 +10,16 @@ export default class KvStore implements Store {
     this.collectionName = collectionName
   }
 
-  async sessionExists(sessionId: string) {
-    let session = (await this.kv.get([this.collectionName, sessionId])).value
-    return session ? true : false
-  }
-
   async getSessionById(sessionId: string) {
     let session = (await this.kv.get([this.collectionName, sessionId])).value
     return session as SessionData
   }
 
-  async createSession(sessionId : string, initialData : SessionData) {
+  async createSession(sessionId: string, initialData: SessionData) {
     await this.kv.set([this.collectionName, sessionId], initialData)
   }
 
-  async deleteSession(sessionId: string){
+  async deleteSession(sessionId: string) {
     await this.kv.delete([this.collectionName, sessionId])
   }
 
