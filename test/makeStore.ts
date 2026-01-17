@@ -5,13 +5,13 @@ import {
   PostgresStore,
   RedisStore,
   SqliteStore,
-  Store,
+  type Store,
   WebdisStore,
 } from "../mod.ts";
-import { connect as connectRedis } from "https://deno.land/x/redis@v0.27.0/mod.ts";
-import { DB as sqliteDB } from "https://deno.land/x/sqlite@v3.9.1/mod.ts";
-import { MongoClient } from "https://deno.land/x/mongo@v0.29.4/mod.ts";
-import postgres from "https://deno.land/x/postgresjs@v3.2.4/mod.js";
+import { connect as connectRedis } from "@db/redis";
+import { Database as sqliteDB } from "@db/sqlite";
+import { MongoClient } from "@db/mongo";
+import { Client as PostgresClient } from "@db/postgres";
 
 export function makeStore(): Promise<Store | CookieStore> {
   const storeType = Deno.env.get("STORE");
@@ -59,8 +59,8 @@ function createWebdisStore() {
 }
 
 async function createPostgresStore() {
-  const sql = postgres({
-    host: "localhost",
+  const sql = new PostgresClient({
+    hostname: "localhost",
     port: 5432,
     database: "postgres",
     user: "postgres",

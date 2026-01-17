@@ -1,6 +1,6 @@
-import Store from "./Store.ts";
-import type { Redis } from "https://deno.land/x/redis@v0.27.0/mod.ts";
-import { SessionData } from "../Session.ts";
+import type Store from "./Store.ts";
+import type { Redis } from "@db/redis";
+import type { SessionData } from "../Session.ts";
 
 export default class RedisStore implements Store {
   keyPrefix: string;
@@ -11,7 +11,7 @@ export default class RedisStore implements Store {
     this.db = db;
   }
 
-  async getSessionById(sessionId: string) {
+  async getSessionById(sessionId: string): Promise<SessionData | null> {
     const session = await this.db.get(this.keyPrefix + sessionId);
 
     if (session) {
@@ -25,15 +25,21 @@ export default class RedisStore implements Store {
     }
   }
 
-  async createSession(sessionId: string, initialData: SessionData) {
+  async createSession(
+    sessionId: string,
+    initialData: SessionData,
+  ): Promise<void> {
     await this.db.set(this.keyPrefix + sessionId, JSON.stringify(initialData));
   }
 
-  async deleteSession(sessionId: string) {
+  async deleteSession(sessionId: string): Promise<void> {
     await this.db.del(this.keyPrefix + sessionId);
   }
 
-  async persistSessionData(sessionId: string, sessionData: SessionData) {
+  async persistSessionData(
+    sessionId: string,
+    sessionData: SessionData,
+  ): Promise<void> {
     await this.db.set(this.keyPrefix + sessionId, JSON.stringify(sessionData));
   }
 }

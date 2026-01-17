@@ -1,9 +1,13 @@
-import { nanoid } from "https://deno.land/x/nanoid@v3.0.0/async.ts";
+import { nanoid } from "@sitnik/nanoid";
 import MemoryStore from "./stores/MemoryStore.ts";
 import CookieStore from "./stores/CookieStore.ts";
-import type { Context, Middleware } from "../deps.ts";
 import type Store from "./stores/Store.ts";
-import type { CookiesGetOptions, CookiesSetDeleteOptions } from "../deps.ts";
+import type { Middleware } from "@oak/oak/middleware";
+import type {
+  Context,
+  CookiesGetOptions,
+  CookiesSetDeleteOptions,
+} from "@oak/oak";
 
 interface SessionOptions {
   expireAfterSeconds?: number | null;
@@ -39,7 +43,7 @@ export default class Session {
     cookieGetOptions = {},
     cookieSetOptions = {},
     sessionCookieName = "session",
-  }: SessionOptions = {}) {
+  }: SessionOptions = {}): Middleware {
     const initMiddleware: Middleware = async (ctx, next) => {
       // get sessionId from cookie
       const sid = await ctx.cookies.get(sessionCookieName, cookieGetOptions);
@@ -163,7 +167,7 @@ export default class Session {
 
   // Methods exposed for users to manipulate session data
 
-  get(key: string) {
+  get(key: string): unknown {
     if (key in this.data) {
       return this.data[key];
     } else {
@@ -173,7 +177,7 @@ export default class Session {
     }
   }
 
-  set(key: string, value: unknown) {
+  set(key: string, value: unknown): void {
     if (value === null || value === undefined) {
       delete this.data[key];
     } else {
@@ -181,11 +185,11 @@ export default class Session {
     }
   }
 
-  flash(key: string, value: unknown) {
+  flash(key: string, value: unknown): void {
     this.data["_flash"][key] = value;
   }
 
-  has(key: string) {
+  has(key: string): boolean {
     return key in this.data || key in this.data["_flash"];
   }
 }

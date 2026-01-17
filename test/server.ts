@@ -1,4 +1,4 @@
-import { Application, Router } from "jsr:@oak/oak@^17";
+import { Application, type Middleware, Router } from "@oak/oak";
 import { Session } from "../mod.ts";
 import { makeStore } from "./makeStore.ts";
 
@@ -18,11 +18,12 @@ const store = await makeStore();
 // const session = new Session(store)
 
 // Apply sessions to your Oak application. You can also apply the middleware to specific routes instead of the whole app.
-app.use(Session.initMiddleware(store, {
+const g: Middleware = Session.initMiddleware(store, {
   cookieSetOptions: {
     sameSite: "lax",
   },
-}));
+});
+app.use(g);
 
 router.post("/login", async (ctx) => {
   const form = await ctx.request.body.form();

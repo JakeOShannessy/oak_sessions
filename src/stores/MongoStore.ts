@@ -1,8 +1,5 @@
-import Store from "./Store.ts";
-import type {
-  Collection,
-  Database,
-} from "https://deno.land/x/mongo@v0.31.2/mod.ts";
+import type Store from "./Store.ts";
+import type { Collection, Database } from "@db/mongo";
 import type { SessionData } from "../Session.ts";
 
 interface MongoSession {
@@ -19,13 +16,16 @@ export default class MongoStore implements Store {
     this.sessions = db.collection(collectionName);
   }
 
-  async getSessionById(sessionId: string) {
+  async getSessionById(sessionId: string): Promise<SessionData | null> {
     const session = await this.sessions.findOne({ id: sessionId });
 
     return session ? session.data : null;
   }
 
-  async createSession(sessionId: string, initialData: SessionData) {
+  async createSession(
+    sessionId: string,
+    initialData: SessionData,
+  ): Promise<void> {
     await this.sessions.replaceOne(
       { id: sessionId },
       {
@@ -36,11 +36,14 @@ export default class MongoStore implements Store {
     );
   }
 
-  async deleteSession(sessionId: string) {
+  async deleteSession(sessionId: string): Promise<void> {
     await this.sessions.deleteOne({ id: sessionId });
   }
 
-  async persistSessionData(sessionId: string, sessionData: SessionData) {
+  async persistSessionData(
+    sessionId: string,
+    sessionData: SessionData,
+  ): Promise<void> {
     await this.sessions.replaceOne(
       { id: sessionId },
       {

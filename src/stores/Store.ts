@@ -1,4 +1,4 @@
-import type { Context } from "../../deps.ts";
+import type { Context } from "@oak/oak";
 import type { SessionData } from "../Session.ts";
 
 export default interface Store {

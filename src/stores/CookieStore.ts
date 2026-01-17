@@ -1,9 +1,9 @@
-import { decryptCryptoJSAES, encryptCryptoJSAES } from "../crypto.ts";
 import type {
   Context,
   CookiesGetOptions,
   CookiesSetDeleteOptions,
-} from "../../deps.ts";
+} from "@oak/oak";
+import { decryptCryptoJSAES, encryptCryptoJSAES } from "../crypto.ts";
 import type { SessionData } from "../Session.ts";
 
 interface CookieStoreOptions {
