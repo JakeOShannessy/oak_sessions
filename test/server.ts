@@ -1,32 +1,20 @@
-import { Application, type Middleware, Router } from "@oak/oak";
+import { App } from "@fresh/core";
 import { Session } from "../mod.ts";
 import { makeStore } from "./makeStore.ts";
 
 type AppState = {
   session: Session;
 };
-const app = new Application<AppState>();
-
-app.addEventListener("error", (evt) => {
-  console.log(evt.error);
-});
-
-const router = new Router<AppState>();
+const app = new App<AppState>();
 
 // Instantiate session
 const store = await makeStore();
-// const session = new Session(store)
 
 // Apply sessions to your Oak application. You can also apply the middleware to specific routes instead of the whole app.
-const g: Middleware = Session.initMiddleware(store, {
-  cookieSetOptions: {
-    sameSite: "lax",
-  },
-});
-app.use(g);
+app.use(Session.initMiddleware(store));
 
-router.post("/login", async (ctx) => {
-  const form = await ctx.request.body.form();
+app.post("/login", async (ctx) => {
+  const form = await ctx.req.formData();
   if (form.get("password") === "correct") {
     // Set persistent data in the session
     ctx.state.session.set("email", form.get("email"));
@@ -39,23 +27,23 @@ router.post("/login", async (ctx) => {
     ctx.state.session.set("failed-login-attempts", failedLoginAttempts + 1);
     ctx.state.session.flash("error", "Incorrect username or password");
   }
-  ctx.response.redirect("/");
+  return ctx.redirect("/");
 });
 
-router.post("/logout", async (ctx) => {
+app.post("/logout", async (ctx) => {
   // Clear all session data
   await ctx.state.session.deleteSession();
-  ctx.response.redirect("/");
+  return ctx.redirect("/");
 });
 
-router.get("/", async (ctx) => {
+app.get("/", async (ctx) => {
   const message = await ctx.state.session.get("message") || "";
   const error = await ctx.state.session.get("error") || "";
   const failedLoginAttempts = await ctx.state.session.get(
     "failed-login-attempts",
   );
   const email = await ctx.state.session.get("email");
-  ctx.response.body = `<!DOCTYPE html>
+  const responseBody = `<!DOCTYPE html>
     <body>
         <p id="message">
             ${message}
@@ -85,10 +73,8 @@ router.get("/", async (ctx) => {
         </form>`
   }
     </body>`;
+  return new Response(responseBody);
 });
-
-app.use(router.routes());
-app.use(router.allowedMethods());
 
 app.listen({ port: 8002 });
 console.log("test server running");

@@ -2,17 +2,11 @@ import { nanoid } from "@sitnik/nanoid";
 import MemoryStore from "./stores/MemoryStore.ts";
 import CookieStore from "./stores/CookieStore.ts";
 import type Store from "./stores/Store.ts";
-import type { Middleware } from "@oak/oak/middleware";
-import type {
-  Context,
-  CookiesGetOptions,
-  CookiesSetDeleteOptions,
-} from "@oak/oak";
+import type { Context, Middleware } from "@fresh/core";
+import { getCookies, setCookie } from "@std/http";
 
 interface SessionOptions {
   expireAfterSeconds?: number | null;
-  cookieGetOptions?: CookiesGetOptions;
-  cookieSetOptions?: CookiesSetDeleteOptions;
   sessionCookieName?: string;
 }
 
@@ -24,15 +18,24 @@ export interface SessionData {
   [key: string]: unknown;
 }
 
+export interface SessionState {
+  session: Session;
+  rotate_session_key?: boolean;
+}
+
 export default class Session {
   sid: string;
   // user should interact with data using `get(), set(), flash(), has()`
   private data: SessionData;
-  private ctx: Context;
+  private ctx: Context<SessionState>;
 
   // construct a Session with no data and id
   // private: force user to create session in initMiddleware()
-  private constructor(sid: string, data: SessionData, ctx: Context) {
+  private constructor(
+    sid: string,
+    data: SessionData,
+    ctx: Context<SessionState>,
+  ) {
     this.sid = sid;
     this.data = data;
     this.ctx = ctx;
@@ -40,15 +43,12 @@ export default class Session {
 
   static initMiddleware(store: Store | CookieStore = new MemoryStore(), {
     expireAfterSeconds = null,
-    cookieGetOptions = {},
-    cookieSetOptions = {},
     sessionCookieName = "session",
-  }: SessionOptions = {}): Middleware {
-    const initMiddleware: Middleware = async (ctx, next) => {
+  }: SessionOptions = {}): Middleware<SessionState> {
+    const initMiddleware: Middleware<SessionState> = async (ctx) => {
       // get sessionId from cookie
-      const sid = await ctx.cookies.get(sessionCookieName, cookieGetOptions);
+      const sid = getCookies(ctx.req.headers)[sessionCookieName];
       let session: Session;
-
       if (sid) {
         // load session data from store
         const sessionData = store instanceof CookieStore
@@ -59,12 +59,11 @@ export default class Session {
           // load success, check if it's valid (not expired)
           if (this.sessionValid(sessionData)) {
             session = new Session(sid, sessionData, ctx);
-            await session.reupSession(store, expireAfterSeconds);
+            // TODO: we need to renable this and make it work with cookies
+            // await session.reupSession(store, expireAfterSeconds);
           } else {
             // invalid session
-            store instanceof CookieStore
-              ? store.deleteSession(ctx)
-              : await store.deleteSession(sid);
+            if (!(store instanceof CookieStore)) await store.deleteSession(sid);
             session = await this.createSession(ctx, store, expireAfterSeconds);
           }
         } else {
@@ -79,9 +78,8 @@ export default class Session {
 
       // update _access time
       session.set("_accessed", new Date().toISOString());
-      await ctx.cookies.set(sessionCookieName, session.sid, cookieSetOptions);
-
-      await next();
+      console.log("moving from state");
+      const response = await ctx.next();
 
       if (ctx.state.rotate_session_key && !(store instanceof CookieStore)) {
         await store.deleteSession(session.sid);
@@ -91,17 +89,28 @@ export default class Session {
           expireAfterSeconds,
           session.data,
         );
-        await ctx.cookies.set(sessionCookieName, session.sid, cookieSetOptions);
       }
+      setCookie(response.headers, {
+        name: sessionCookieName,
+        value: session.sid,
+        path: "/",
+        sameSite: "None",
+        secure: true,
+        httpOnly: true,
+        maxAge: 86400,
+      });
 
       // request done, push session data to store
-      await session.persistSessionData(store);
+      console.log("about to persist");
+      await session.persistSessionData(store, response.headers);
+      console.log("persisted", session.data);
 
       if (session.data._delete) {
         store instanceof CookieStore
-          ? store.deleteSession(ctx)
+          ? store.deleteSession(response.headers)
           : await store.deleteSession(session.sid);
       }
+      return response;
     };
 
     return initMiddleware;
@@ -114,20 +123,20 @@ export default class Session {
   }
 
   // should only be called in `initMiddleware()`
-  private async reupSession(
-    store: Store | CookieStore,
-    expiration: number | null | undefined,
-  ) {
-    // expiration in seconds
-    this.data._expire = expiration
-      ? new Date(Date.now() + expiration * 1000).toISOString()
-      : null;
-    await this.persistSessionData(store);
-  }
+  // private async reupSession(
+  //   store: Store | CookieStore,
+  //   expiration: number | null | undefined,
+  // ) {
+  //   // expiration in seconds
+  //   this.data._expire = expiration
+  //     ? new Date(Date.now() + expiration * 1000).toISOString()
+  //     : null;
+  //   await this.persistSessionData(store);
+  // }
 
   // should only be called in `initMiddleware()` when creating a new session
   private static async createSession(
-    ctx: Context,
+    ctx: Context<SessionState>,
     store: Store | CookieStore,
     expiration: number | null | undefined,
     defaultData?: SessionData,
@@ -142,9 +151,9 @@ export default class Session {
     };
 
     const newID = await nanoid(21);
-    store instanceof CookieStore
-      ? await store.createSession(ctx, sessionData)
-      : await store.createSession(newID, sessionData);
+    if (!(store instanceof CookieStore)) {
+      await store.createSession(newID, sessionData);
+    }
 
     return new Session(newID, sessionData, ctx);
   }
@@ -159,9 +168,12 @@ export default class Session {
 
   // push current session data to Session.store
   // ctx is needed for CookieStore
-  private persistSessionData(store: Store | CookieStore): Promise<void> | void {
+  private persistSessionData(
+    store: Store | CookieStore,
+    headers: Headers,
+  ): Promise<void> | void {
     return store instanceof CookieStore
-      ? store.persistSessionData(this.ctx, this.data)
+      ? store.persistSessionData(headers, this.data)
       : store.persistSessionData(this.sid, this.data);
   }
 

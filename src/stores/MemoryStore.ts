@@ -8,6 +8,10 @@ export default class MemoryStore implements Store {
     this.data = new Map();
   }
 
+  getSessionByCtx(sessionId: string): SessionData | null {
+    return this.data.has(sessionId) ? this.data.get(sessionId)! : null;
+  }
+
   getSessionById(sessionId: string): SessionData | null {
     return this.data.has(sessionId) ? this.data.get(sessionId)! : null;
   }

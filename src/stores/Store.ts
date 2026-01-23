@@ -1,5 +1,5 @@
-import type { Context } from "@oak/oak";
-import type { SessionData } from "../Session.ts";
+import type { Context } from "@fresh/core";
+import type { SessionData, SessionState } from "../Session.ts";
 
 export default interface Store {
   getSessionById(
@@ -13,5 +13,7 @@ export default interface Store {
     sessionId: string,
     sessionData: SessionData,
   ): Promise<void> | void;
-  deleteSession(sessionIdOrContext: string | Context): Promise<void> | void;
+  deleteSession(
+    sessionIdOrContext: string | Context<SessionState>,
+  ): Promise<void> | void;
 }

@@ -1,38 +1,27 @@
-import type {
-  Context,
-  CookiesGetOptions,
-  CookiesSetDeleteOptions,
-} from "@oak/oak";
+import type { Context } from "@fresh/core";
 import { decryptCryptoJSAES, encryptCryptoJSAES } from "../crypto.ts";
-import type { SessionData } from "../Session.ts";
+import type { SessionData, SessionState } from "../Session.ts";
+import { deleteCookie, getCookies, setCookie } from "@std/http";
 
 interface CookieStoreOptions {
-  cookieGetOptions?: CookiesGetOptions;
-  cookieSetDeleteOptions?: CookiesSetDeleteOptions;
   sessionDataCookieName?: string;
 }
 
 export default class CookieStore {
   encryptionKey: string;
-
-  cookieGetOptions: CookiesGetOptions;
-  cookieSetDeleteOptions: CookiesSetDeleteOptions;
   sessionDataCookieName: string;
 
   constructor(encryptionKey: string, options?: CookieStoreOptions) {
     this.encryptionKey = encryptionKey;
-
-    this.cookieGetOptions = options?.cookieGetOptions ?? {};
-    this.cookieSetDeleteOptions = options?.cookieSetDeleteOptions ?? {};
     this.sessionDataCookieName = options?.sessionDataCookieName ??
       "session_data";
   }
 
-  async getSessionByCtx(ctx: Context): Promise<SessionData | null> {
-    const sessionDataString: string | undefined = await ctx.cookies.get(
-      this.sessionDataCookieName,
-      this.cookieGetOptions,
-    );
+  async getSessionByCtx(
+    ctx: Context<SessionState>,
+  ): Promise<SessionData | null> {
+    const sessionDataString: string | undefined =
+      getCookies(ctx.req.headers)[this.sessionDataCookieName];
 
     if (!sessionDataString) return null;
 
@@ -47,35 +36,25 @@ export default class CookieStore {
     }
   }
 
-  async createSession(ctx: Context, initialData: SessionData) {
-    const dataString = JSON.stringify(initialData);
-
-    const encryptedCookie = await encryptCryptoJSAES(
-      dataString,
-      this.encryptionKey,
-    );
-    await ctx.cookies.set(
-      this.sessionDataCookieName,
-      encryptedCookie,
-      this.cookieSetDeleteOptions,
-    );
+  deleteSession(headers: Headers) {
+    deleteCookie(headers, this.sessionDataCookieName);
   }
 
-  deleteSession(ctx: Context) {
-    ctx.cookies.delete(this.sessionDataCookieName, this.cookieSetDeleteOptions);
-  }
-
-  async persistSessionData(ctx: Context, data: SessionData) {
+  async persistSessionData(headers: Headers, data: SessionData) {
     const dataString = JSON.stringify(data);
 
     const encryptedCookie = await encryptCryptoJSAES(
       dataString,
       this.encryptionKey,
     );
-    await ctx.cookies.set(
-      this.sessionDataCookieName,
-      encryptedCookie,
-      this.cookieSetDeleteOptions,
-    );
+    setCookie(headers, {
+      name: this.sessionDataCookieName,
+      value: encryptedCookie,
+      path: "/",
+      sameSite: "None",
+      secure: true,
+      httpOnly: true,
+      maxAge: 86400,
+    });
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@smoke-cloud/lemon-sessions",
-  "version": "9.0.0",
+  "version": "0.1.0",
   "exports": "./mod.ts",
   "tasks": {
     "typecheck": "deno check ./mod.ts"
@@ -11,8 +11,9 @@
     "@db/postgres": "jsr:@db/postgres@^0.19.5",
     "@db/redis": "jsr:@db/redis@^0.40.0",
     "@db/sqlite": "jsr:@db/sqlite@^0.13.0",
-    "@oak/oak": "jsr:@oak/oak@^17.2.0",
+    "@fresh/core": "jsr:@fresh/core@^2.2.0",
     "@sitnik/nanoid": "jsr:@sitnik/nanoid@^5.1.5",
-    "@std/encoding": "jsr:@std/encoding@^1.0.10"
+    "@std/encoding": "jsr:@std/encoding@^1.0.10",
+    "@std/http": "jsr:@std/http@^1.0.23"
   }
 }
