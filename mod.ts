@@ -1,4 +1,4 @@
-import Session from "./src/Session.ts";
+import Session, { type SessionState } from "./src/Session.ts";
 import MemoryStore from "./src/stores/MemoryStore.ts";
 import CookieStore from "./src/stores/CookieStore.ts";
 import SqliteStore from "./src/stores/SqliteStore.ts";
@@ -8,7 +8,7 @@ import PostgresStore from "./src/stores/PostgresStore.ts";
 import MongoStore from "./src/stores/MongoStore.ts";
 import type Store from "./src/stores/Store.ts";
 
-export type { Store };
+export type { SessionState, Store };
 
 export {
   CookieStore,
