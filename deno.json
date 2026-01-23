@@ -2,6 +2,7 @@
   "name": "@smoke-cloud/lemon-sessions",
   "version": "0.1.0",
   "exports": "./mod.ts",
+  "license": "MIT",
   "tasks": {
     "typecheck": "deno check ./mod.ts"
   },
